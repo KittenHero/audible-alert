@@ -2,9 +2,11 @@ A script to track new audible releases from series in your library
 
 how to run:
 
+Linux/MaxOS:
 ```
-> pipenv install
-> pipenv run python script.py
+> ./run.sh
 ```
 
-script is pretty simple
+Windows:
+
+same as linux, but enable WSL first. Or convert `./run.sh` into powershell script if desired.
