@@ -71,6 +71,7 @@ def get_wishlisted(client: audible.Client) -> list[Rating]:
             response_groups=','.join([
                 'product_desc',
                 'rating',
+                'sample',
             ]),
             sort_by='-Rating',
             page=page
@@ -80,11 +81,20 @@ def get_wishlisted(client: audible.Client) -> list[Rating]:
             Rating(
                 book['title'],
                 book['rating']['overall_distribution']['average_rating'],
+                [book['rating']['overall_distribution'][f'num_{i}_star_ratings'] for i in ['one', 'two', 'three', 'four', 'five']],
                 book['rating']['num_reviews']
             ) for book in result['products']
         )
         page += 1
     return wishlist
+
+
+def add_to_wishlist(client: audible.Client, book: BookInfo):
+    client.post('wishlist', {'asin': book.asin})
+
+
+def remove_from_wishlist(client: audible.Client, book: BookInfo):
+    client.delete(f'wishlist/{book.asin}')
 
 
 def get_series_by_latest_owned_title(client: audible.Client) -> dict[str, Series]:
@@ -96,6 +106,7 @@ def get_series_by_latest_owned_title(client: audible.Client) -> dict[str, Series
             'series',
             'product_desc',
             'product_attrs',
+            'origin_asin',
         ]),
         sort_by='-PurchaseDate',
     )
@@ -105,6 +116,7 @@ def get_series_by_latest_owned_title(client: audible.Client) -> dict[str, Series
         temp = book['series'][0]
         series = Series(temp['title'], temp['url'])
         book_info = BookInfo(
+            book['origin_asin'],
             book['title'],
             book['series'][0]['title'],
             datetime.strptime(
@@ -139,7 +151,8 @@ async def check_new_releases_in_series(http_client: httpx.AsyncClient, marketpla
         item = node.find_parent('li')
         title = item.select('.bc-heading a.bc-link')[0].get_text()
         cover_img = item.select('picture img')[0]['src']
-        return BookInfo(title, series.title, release_date, cover_img)
+        asin = item.select('[data-asin]')[0]['data-asin']
+        return BookInfo(asin, title, series.title, release_date, cover_img)
 
     return [
         get_book_info(node, release_date) for node in releases

@@ -62,14 +62,11 @@ async def get_(client: audible.Client, config: ConfigParser) -> list[str]:
 
 @register_command("rank")
 async def rank_reviews(client: audible.Client, _config: ConfigParser) -> list[str]:
-    """Rank your wishlist by f(review score, reviewers)"""
+    """Rank your wishlist by nps(review score) * log(1 + reviewers)"""
     wishlist = get_wishlisted(client)
-    log_reviews = {rating.title: math.log(1 + rating.reviewers) for rating in wishlist}
-    upper = max(log_reviews.values())
-    norm_log_review = {title: 5 * log_review / upper for title, log_review in log_reviews.items()}
     wishlist.sort(
         reverse=True,
-        key=lambda rating: rating.average_rating * norm_log_review[rating.title]
+        key=lambda rating: (rating.num_star_ratings[4] - sum(rating.num_star_ratings[:3])) * math.log(1 + sum(rating.num_star_ratings))
     )
     return [str(rating) for rating in wishlist]
 
